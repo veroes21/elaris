@@ -137,7 +137,7 @@ jobs:
       - name: Install bundling and headless test tools
         run: |
           apt-get update -o APT::Update::Error-Mode=any
-          apt-get install -y --no-install-recommends patchelf xvfb mesa-vulkan-drivers libvulkan1 ca-certificates
+          apt-get install -y --no-install-recommends patchelf xvfb mesa-vulkan-drivers libvulkan1 ca-certificates curl
 
       - name: Restore Ladybird dependency and build caches
         uses: actions/cache/restore@v4
@@ -206,6 +206,12 @@ jobs:
           cp dist/BUILD-INFO.txt "dist/Elaris-${version}-linux-x86_64.BUILD-INFO.txt"
           (cd dist && sha256sum "$(basename "$archive")" > "$(basename "$archive").sha256")
 
+      - name: Package the Void Linux package and repository index
+        run: |
+          # Void's statically linked xbps tools are downloaded by the script, so any host can build the package.
+          version="${GITHUB_REF_NAME:-dev}"
+          ./packaging/linux/build-xbps.sh --version "$version" --tree build/linux/Elaris --output dist
+
       - uses: actions/upload-artifact@v4
         with:
           name: elaris-linux-x86_64
@@ -235,4 +241,4 @@ jobs:
           gh release create "$TAG" dist/* \
             --draft --prerelease \
             --title "Elaris ${TAG} (experimental alpha)" \
-            --notes "Experimental alpha builds of Elaris. Each archive ships Ladybird's engine; see BUILD-INFO.txt for the exact Elaris, Ladybird and Rune revisions and verify the .sha256 checksum before running."
+            --notes "Experimental alpha builds of Elaris. Each archive ships Ladybird's engine; see BUILD-INFO.txt for the exact Elaris, Ladybird and Rune revisions and verify the .sha256 checksum before running. The Linux archive includes install.sh and INSTALL-VOID.md for installing it on Linux, including Void Linux. On Void Linux, install the .xbps from the directory holding it and its x86_64-repodata index with xbps-install --repository=<dir> elaris."

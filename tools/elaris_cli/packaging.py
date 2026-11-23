@@ -246,6 +246,12 @@ def linux_prefix_bundle(executable: Path, prefix: Path) -> Path:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
 
+    # Shipped beside the tree rather than inside it: install.sh copies only bin/, lib/, libexec/ and share/.
+    installer = prefix / "install.sh"
+    shutil.copy2(LINUX_ASSETS / "install.sh", installer)
+    installer.chmod(0o755)
+    shutil.copy2(LINUX_ASSETS / "INSTALL-VOID.md", prefix / "INSTALL-VOID.md")
+
     run_path = {installed: "$ORIGIN/../lib"}
     run_path.update({prefix / "libexec" / helper.name: "$ORIGIN/../lib" for helper in helpers})
     run_path.update({library: "$ORIGIN" for library in library_directory.iterdir() if library.is_file()})

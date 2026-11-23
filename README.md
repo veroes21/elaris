@@ -61,7 +61,7 @@ Elaris draws its own window controls on Linux. On tiling window managers (Sway, 
 ./elaris bundle            # release build with Ladybird and the icon: build/Elaris.app (macOS) or build/linux/Elaris (Linux)
 ```
 
-The Linux bundle is a prefix tree. Copy it into `~/.local` (or `/usr`) to install the launcher entry and icon, and install `patchelf` before bundling. Elaris needs a Vulkan driver at run time, such as the system's GPU driver or Mesa.
+The Linux bundle is a prefix tree. Copy it into `~/.local` (or `/usr`) to install the launcher entry and icon, and install `patchelf` before bundling. The release archive ships `install.sh` and `INSTALL-VOID.md` beside the tree, which install it on Linux including Void Linux; releases also publish the same tree as a Void `.xbps` package. Elaris needs a Vulkan driver at run time, such as the system's GPU driver or Mesa.
 
 Run `./elaris check` before opening a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and [SETUP.md](SETUP.md) for full environment details.
 

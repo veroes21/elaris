@@ -130,7 +130,7 @@ def bundle(_args: argparse.Namespace) -> None:
         prefix = ROOT / "build" / "linux" / "Elaris"
         packaging.linux_prefix_bundle(executable, prefix)
         ui.success(f"Bundled {prefix}")
-        ui.info(f"Install with: cp -R {prefix}/. ~/.local/  (then run update-desktop-database ~/.local/share/applications)")
+        ui.info(f"Install with: {prefix}/install.sh  (see {prefix}/INSTALL-VOID.md on Void Linux)")
     else:
         raise SystemExit("elaris: bundle supports macOS and Linux")
 

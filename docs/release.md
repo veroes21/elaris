@@ -37,10 +37,16 @@ bundle version fields accept only numbers and dots.
 | Platform | File | Contents |
 | --- | --- | --- |
 | macOS, Apple Silicon | `Elaris-<version>-macos-arm64.dmg` | `Elaris.app`: the browser, Ladybird's helper processes, its resources, and the libraries it links, ad-hoc signed |
-| Linux, x86_64 | `Elaris-<version>-linux-x86_64.tar.gz` | A prefix tree: `bin/elaris`, `libexec/` helpers, `lib/` libraries, `share/` resources, desktop entry and icons |
+| Linux, x86_64 | `Elaris-<version>-linux-x86_64.tar.gz` | A prefix tree: `bin/elaris`, `libexec/` helpers, `lib/` libraries, `share/` resources, desktop entry and icons, plus `install.sh` and `INSTALL-VOID.md` beside the tree |
+| Void Linux, x86_64 | `elaris-<version>_1.x86_64.xbps` and `x86_64-repodata` | The same tree as a Void package: the engine in `/usr/lib/elaris` with `bin/`, `lib/`, `libexec/` and `share/`, `/usr/bin/elaris`, and links for the desktop entry and icons |
 
 Each archive comes with a `.sha256` checksum and a `BUILD-INFO.txt` that records the Elaris commit, the pinned Ladybird
 commit, the Rune revision, and the toolchain used.
+
+The Void package keeps the tree's own layout under `/usr/lib/elaris`, so Ladybird's helpers still find `../share/Lagom`
+beside themselves; `/usr/bin/elaris` and the desktop entry and icons in `/usr/share` are links into that tree.
+`packaging/linux/build-xbps.sh` builds the package and its index from `build/linux/Elaris`, taking Void's statically
+linked `xbps-create` and `xbps-rindex` from `PATH`, from `--xbps-tools`, or by downloading them into `build/tools/`.
 
 ## Limitations of this release process
 
@@ -52,5 +58,12 @@ commit, the Rune revision, and the toolchain used.
   glibc 2.43 or newer at run time, so older distributions such as Ubuntu 24.04, Debian 12 and RHEL 9 cannot run it yet.
   The target is all major distributions, which needs the Linux build moved to an older glibc base. Local verification
   was done on arm64 under Docker, so the first run of the workflow is the first x86_64 check.
+- The Linux archive is a glibc build, so Void Linux's musl flavour cannot run it. `install.sh` checks the C library,
+  architecture and Vulkan at install time, and `INSTALL-VOID.md` names the Void packages the browser needs
+  (`vulkan-loader` and a Mesa Vulkan driver). Neither has been run on a Void installation yet.
+- The Void package and its repository index are unsigned, so it is installed from a local directory rather than a
+  remote repository, and the `.sha256` is the only integrity check. The package depends on `vulkan-loader` but cannot
+  depend on a GPU-specific Mesa driver. It has been installed with Void's static xbps tools into a scratch root, but
+  not yet on a real Void system with a desktop session.
 - Linux support targets both Wayland and X11 sessions. Neither has been tested on a real desktop yet.
 - The pinned Ladybird and Rune revisions are recorded in `BUILD-INFO.txt`. Both must be pinned before tagging.
