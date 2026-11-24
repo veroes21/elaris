@@ -142,7 +142,7 @@ jobs:
           apt-get update -o APT::Update::Error-Mode=any
           # The build runs as an unprivileged user, and the image does not guarantee
           # useradd or runuser, so install the packages that supply them.
-          apt-get install -y --no-install-recommends patchelf xvfb mesa-vulkan-drivers libvulkan1 ca-certificates curl passwd util-linux
+          apt-get install -y --no-install-recommends patchelf xvfb mesa-vulkan-drivers libvulkan1 ca-certificates curl passwd util-linux clang-format clang-tidy
 
       - name: Expose the image's LLVM tools under their plain names
         run: |
@@ -161,6 +161,19 @@ jobs:
           done
           echo "$shims" >> "$GITHUB_PATH"
           ls -l "$shims"
+
+      - name: Record the toolchain setup checks
+        run: |
+          mkdir -p "$RUNNER_TEMP/diagnostics"
+          {
+            for tool in git cmake ninja pkg-config python3 clang clang++ clang-format clang-tidy rustup rustc; do
+              printf '%s: %s\n' "$tool" "$(command -v "$tool" || echo MISSING)"
+            done
+            pkg-config --modversion Qt6Core 2>&1 || true
+            cmake --version | head -1
+            clang --version | head -1
+          } > "$RUNNER_TEMP/diagnostics/tools.txt" 2>&1
+          cat "$RUNNER_TEMP/diagnostics/tools.txt"
 
       - name: Restore Ladybird dependency and build caches
         uses: actions/cache/restore@v4
@@ -249,6 +262,15 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload toolchain diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elaris-release-linux-diagnostics
+          path: ${{ runner.temp }}/diagnostics/
+          if-no-files-found: ignore
+          retention-days: 7
 
   publish:
     name: Publish draft pre-release
