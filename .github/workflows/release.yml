@@ -147,12 +147,20 @@ jobs:
       - name: Expose the image's LLVM tools under their plain names
         run: |
           # The image ships only versioned names, while setup and CMake look for
-          # clang, clang++ and the formatters by their plain names.
+          # clang, clang++ and the formatters by their plain names. The bridge
+          # workflow arranges the same shims.
+          shims="$RUNNER_TEMP/elaris-llvm"
+          mkdir -p "$shims"
           for tool in clang clang++ clang-format clang-tidy; do
-            if ! command -v "$tool" >/dev/null 2>&1; then
-              ln -s "$(command -v "$tool-22")" "/usr/local/bin/$tool"
+            versioned="$(command -v "$tool-22" || true)"
+            if [ -n "$versioned" ]; then
+              ln -sf "$versioned" "$shims/$tool"
+            else
+              echo "elaris: $tool-22 is missing from the image" >&2
             fi
           done
+          echo "$shims" >> "$GITHUB_PATH"
+          ls -l "$shims"
 
       - name: Restore Ladybird dependency and build caches
         uses: actions/cache/restore@v4
