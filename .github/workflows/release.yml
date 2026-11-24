@@ -144,6 +144,16 @@ jobs:
           # useradd or runuser, so install the packages that supply them.
           apt-get install -y --no-install-recommends patchelf xvfb mesa-vulkan-drivers libvulkan1 ca-certificates curl passwd util-linux
 
+      - name: Expose the image's LLVM tools under their plain names
+        run: |
+          # The image ships only versioned names, while setup and CMake look for
+          # clang, clang++ and the formatters by their plain names.
+          for tool in clang clang++ clang-format clang-tidy; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              ln -s "$(command -v "$tool-22")" "/usr/local/bin/$tool"
+            fi
+          done
+
       - name: Restore Ladybird dependency and build caches
         uses: actions/cache/restore@v4
         with:
@@ -158,15 +168,23 @@ jobs:
             release-linux-x64-${{ hashFiles('vendor/ladybird/vcpkg.json', 'vendor/ladybird/vcpkg-configuration.json') }}-
             release-linux-x64-
 
-      - name: Set up Elaris and Ladybird
+      - name: Prepare the unprivileged build user
         run: |
           # Ladybird refuses to build as root, so build as an unprivileged user as the bridge workflow does.
           if ! id elaris-builder >/dev/null 2>&1; then
             useradd --create-home --shell /bin/bash elaris-builder
           fi
-          chown -R elaris-builder:elaris-builder "$GITHUB_WORKSPACE"
-          runuser -u elaris-builder -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          runuser -u elaris-builder -- ./elaris setup --skip-system-deps
+          # Setup installs Ladybird's pinned Rust toolchain, so rustup's root-owned
+          # directories have to be writable by the build user.
+          chown -R elaris-builder:elaris-builder "$GITHUB_WORKSPACE" /opt/rustup
+          mkdir -p "$GITHUB_WORKSPACE/.cargo"
+          chown -R elaris-builder:elaris-builder "$GITHUB_WORKSPACE/.cargo"
+          echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo" >> "$GITHUB_ENV"
+          runuser -u elaris-builder -- env HOME=/home/elaris-builder git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          runuser -u elaris-builder -- env HOME=/home/elaris-builder git config --global --add safe.directory "$GITHUB_WORKSPACE/vendor/ladybird"
+
+      - name: Set up Elaris and Ladybird
+        run: runuser -u elaris-builder -- ./elaris setup --skip-system-deps
 
       - name: Build and bundle Elaris
         run: runuser -u elaris-builder -- env ELARIS_JOBS=4 ./elaris bundle
